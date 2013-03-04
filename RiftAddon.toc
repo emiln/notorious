@@ -1,0 +1,26 @@
+
+Identifier = "Notorious"
+
+Name = {
+    English = "Notorious"
+}
+
+NameShort = "Notorious"
+
+Description = {
+    English = "Helps you keep track of Notoriety."
+}
+
+RunOnStartup = {
+    "Notorious.lua",
+}
+
+SavedVariables = {
+	Notorious = 'character',
+}
+
+Author = "Felandra@Argent"
+Website = "http://www.google.com"
+Version = "1.0.0"
+Email = "email@google.com"
+Environment = "1.9"
