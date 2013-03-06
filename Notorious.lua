@@ -12,6 +12,7 @@ local Notorious = {
 	},
 	Event = {},
 	State = {
+		spamThreshold = 5,
 		factions = {},
 		caps = {26000, 10000, 20000, 35000, 60000}
 	},
@@ -186,18 +187,32 @@ local function CreateNotorietyBar(fac)
 	f:SetHeight(Notorious.UI.facHeight)
 	UpdateFaction(id)
 
-	function f:SetFraction(frac)
+	function b:SetFraction(frac)
 		b:SetWidth(frac * Notorious.UI.width)
 		p:SetText(math.floor(frac*100).."%")
 	end
+	
+	function b:SetText(txt)
+		f:SetText(txt)
+	end
 
-	return f
+	return b
 end
 
 local function ResizeList()
 	local w = Notorious.UI.wrap
 	local m = Notorious.UI.main
 	local l = Notorious.UI.list
+	local f = Notorious.State.factions
+	table.sort(f, function (a, b)
+			return a.remaining < b.remaining
+		end)
+	local idx = 0
+	for i,fac in pairs(f) do
+		local fra = fac.frame
+		fra:SetPoint("TOPLEFT", l, "TOPLEFT", 0, idx * Notorious.UI.facHeight)
+		idx = idx + 1
+	end
 	local fh = #Notorious.State.factions * Notorious.UI.facHeight
 	w:SetHeight(fh + Notorious.UI.facHeight + 3)
 	m:SetHeight(fh + Notorious.UI.facHeight + 1)
@@ -207,6 +222,12 @@ end
 Command.Event.Attach(
 	Event.Faction.Notoriety,
 	function (handle, notoriety)
+		count = 0
+		for k,c in pairs(notoriety) do
+			count = count + 1
+		end
+		if (count > Notorious.State.spamThreshold) then return end
+		
 		for i,v in pairs(notoriety) do
 			fac = Inspect.Faction.Detail(i)
 			if (not (fac == nil)) then
@@ -217,18 +238,12 @@ Command.Event.Attach(
 				if (not FactionShown(name)) then
 					if (not (rem == nil)) then
 						local list = Notorious.UI.list
-						--[[local f = UI.CreateFrame("Text", "Notorious ["..id.."]", list)
-						f:SetPoint("TOPCENTER", list, "TOPCENTER", 0,
-							#Notorious.State.factions * Notorious.UI.facHeight)
-						list:SetHeight(#Notorious.State.factions * Notorious.UI.facHeight)
-						Notorious.UI.main:SetHeight(Notorious.UI.title:GetHeight() +
-							#Notorious.State.factions * Notorious.UI.facHeight + 3)
-						f:SetWidth(Notorious.UI.width)
-						f:SetHeight(Notorious.UI.facHeight)]]--
-						local f = CreateNotorietyBar(fac)
-						table.insert(Notorious.State.factions,
-							{id=id, name=name, notoriety=noto, frame=f})
-						UpdateFaction(id)
+						if (#Notorious.State.factions < Notorious.UI.maxFacs) then
+							local f = CreateNotorietyBar(fac)
+							table.insert(Notorious.State.factions,
+								{id=id, name=name, notoriety=noto, remaining=rem, frame=f})
+							UpdateFaction(id)
+						end
 					end
 				else
 					UpdateFaction(id)
