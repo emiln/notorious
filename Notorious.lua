@@ -2,10 +2,11 @@ local Notorious = {
     version = "1.0",
 	UI = {
 		facHeight = 18,
+		fontSize = 12,
 		visible = true,
 		alpha = 0.8,
 		dragAlpha = 0.3,
-		width = 200,
+		width = 60,
 		maxFacs = 5,
 		x = 10,
 		y = 10,
@@ -36,12 +37,11 @@ local function CreateMainFrame()
 	wrap:SetBackgroundColor(0, 0, 0, Notorious.UI.alpha)
 	Notorious.UI.wrap = wrap
 
-	m = UI.CreateFrame("Frame", "Notorious Main Frame", wrap)
-	m:SetPoint("TOPLEFT", wrap, "TOPLEFT", 1, 1)
-	m:SetVisible(true)
-	m:SetHeight(Notorious.UI.facHeight + 1)
-	m:SetWidth(Notorious.UI.width)
-	m:SetBackgroundColor(0.1, 0.1, 0.1, Notorious.UI.alpha)
+	local main = UI.CreateFrame("Frame", "Notorious Main Frame", wrap)
+	main:SetPoint("TOPLEFT", wrap, "TOPLEFT", 1, 1)
+	main:SetPoint("TOPRIGHT", wrap, "TOPRIGHT", -1, 1)
+	main:SetHeight(Notorious.UI.facHeight)
+	main:SetBackgroundColor(0.1, 0.1, 0.1, Notorious.UI.alpha)
 
 	function wrap.Event:LeftDown()
 		local mouse = Inspect.Mouse()
@@ -68,27 +68,28 @@ local function CreateMainFrame()
 		Notorious.State.mouseDown1 = false
 	end
 
-	local n = Notorious.UI.title
-	n = UI.CreateFrame("Text", "Notorious Main Title", m)
-	n:SetPoint("TOPCENTER", m, "TOPCENTER", 0, 0)
-	n:SetFontColor(0.9, 0.9, 0.9)
-	n:SetText("Notorious")
-	Notorious.UI.title = n
+	local name = Notorious.UI.title
+	name = UI.CreateFrame("Text", "Notorious Main Title", main)
+	name:SetPoint("CENTERLEFT", main, "CENTERLEFT", 0, 0)
+	name:SetPoint("CENTERRIGHT", main, "CENTERRIGHT", 0, 0)
+	name:SetFontColor(0.9, 0.9, 0.9)
+	name:SetText("Notorious")
+	Notorious.UI.title = name
 
-	local h = UI.CreateFrame("Frame", "Notorious Main Frame HR", m)
-	h:SetPoint("TOPCENTER", n, "BOTTOMCENTER", 0, 0)
-	h:SetWidth(Notorious.UI.width)
-	h:SetHeight(1)
-	h:SetBackgroundColor(0, 0, 0, Notorious.UI.alpha)
+	local hori = UI.CreateFrame("Frame", "Notorious Main Frame HR", main)
+	hori:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, 0)
+	hori:SetPoint("TOPRIGHT", name, "BOTTOMRIGHT", 0, 0)
+	hori:SetHeight(1)
+	hori:SetBackgroundColor(0, 0, 0, Notorious.UI.alpha)
 
-	local l = Notorious.UI.list
-	l = UI.CreateFrame("Frame", "Notorious Faction List", m)
-	l:SetPoint("TOPCENTER", h, "BOTTOMCENTER", 0, 0)
-	l:SetWidth(Notorious.UI.width)
-	l:SetHeight(0)
-	Notorious.UI.list = l
+	local list = Notorious.UI.list
+	list = UI.CreateFrame("Frame", "Notorious Faction List", main)
+	list:SetPoint("TOPLEFT", hori, "BOTTOMLEFT", 0, 0)
+	list:SetPoint("TOPRIGHT", hori, "BOTTOMRIGHT", 0, 0)
+	list:SetHeight(0)
+	Notorious.UI.list = list
 
-	return m
+	return wrap
 end
 
 Notorious.UI.context = CreateContext()
@@ -141,6 +142,30 @@ local function NotorietyFraction(facId)
 	return 1
 end
 
+local function ResizeList()
+	local w = Notorious.UI.wrap
+	local m = Notorious.UI.main
+	local l = Notorious.UI.list
+	local f = Notorious.State.factions
+	table.sort(f, function (a, b)
+			return a.remaining < b.remaining
+		end)
+	local idx = 0
+	local wid = 0
+	for i,fac in pairs(f) do
+		local fra = fac.frame
+		local w = fra:GetMinWidth()
+		if (w > wid) then wid = w end
+		fra:SetPoint("TOPLEFT", l, "TOPLEFT", 0, idx * Notorious.UI.facHeight)
+		idx = idx + 1
+	end
+	local fh = #Notorious.State.factions * Notorious.UI.facHeight
+	w:SetHeight(fh + Notorious.UI.facHeight + 3)
+	m:SetHeight(fh + Notorious.UI.facHeight + 1)
+	l:SetHeight(fh)
+	m:SetWidth(wid)
+end
+
 local function UpdateFaction(id)
 	for i,v in pairs(Notorious.State.factions) do
 		if (v.id == id) then
@@ -155,6 +180,7 @@ local function UpdateFaction(id)
 			v.frame:SetFraction(fra)
 		end
 	end
+	ResizeList()
 end
 
 local function CreateNotorietyBar(fac)
@@ -165,58 +191,57 @@ local function CreateNotorietyBar(fac)
 	rem = NotorietyRemaining(id)
 
 	local list = Notorious.UI.list
-	local b = UI.CreateFrame("Frame", "NotoriousBG ["..id.."]", list)
-	local f = UI.CreateFrame("Text", "Notorious ["..id.."]", b)
-	local p = UI.CreateFrame("Text", "Notorious Percentage ["..id.."]", b)
-	local h = UI.CreateFrame("Frame", "NotoriousHR ["..id.."]", f)
-	h:SetWidth(Notorious.UI.width)
-	h:SetHeight(1)
-	h:SetBackgroundColor(0, 0, 0, Notorious.UI.alpha)
-	h:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
-
-	b:SetPoint("TOPLEFT", list, "TOPLEFT", 0,
+	local cont = UI.CreateFrame("Frame", "NotoriousFrame ["..id.."]", list)
+	local back = UI.CreateFrame("Frame", "NotoriousBG ["..id.."]", cont)
+	local fact = UI.CreateFrame("Text", "Notorious ["..id.."]", back)
+	local perc = UI.CreateFrame("Text", "Notorious Percentage ["..id.."]", back)
+	local hori = UI.CreateFrame("Frame", "NotoriousHR ["..id.."]", cont)
+	local vert = UI.CreateFrame("Frame", "NotoriousVR ["..id.."]", cont)
+	
+	cont:SetHeight(Notorious.UI.facHeight)
+	cont:SetPoint("TOPLEFT", list, "TOPLEFT", 0,
 		#Notorious.State.factions * Notorious.UI.facHeight)
-	f:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
-	p:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
-
-	b:SetWidth(frac * Notorious.UI.width)
-	b:SetBackgroundColor(1, 0, 0, 0.3)
-	b:SetHeight(Notorious.UI.facHeight)
-
-	f:SetWidth(Notorious.UI.width)
-	f:SetHeight(Notorious.UI.facHeight)
+	cont:SetPoint("TOPRIGHT", list, "TOPRIGHT", 0,
+		#Notorious.State.factions * Notorious.UI.facHeight)
+	
+	back:SetBackgroundColor(1, 0, 0, 0.3)
+	back:SetPoint("CENTERLEFT", cont, "CENTERLEFT", 0, 0)
+	back:SetHeight(Notorious.UI.facHeight)
+	back:SetWidth(Notorious.UI.width * frac)
+	
+	fact:SetPoint("CENTERLEFT", cont, "CENTERLEFT", 0, 0)
+	fact:SetFontSize(Notorious.UI.fontSize)
+	
+	perc:SetPoint("CENTERRIGHT", cont, "CENTERRIGHT", 0, 0)
+	perc:SetFontSize(Notorious.UI.fontSize)
+	
+	hori:SetHeight(1)
+	hori:SetBackgroundColor(0, 0, 0, Notorious.UI.alpha)
+	hori:SetPoint("BOTTOMLEFT", cont, "BOTTOMLEFT", 0, 0)
+	hori:SetPoint("BOTTOMRIGHT", cont, "BOTTOMRIGHT", 0, 0)
+	
+	vert:SetWidth(1)
+	vert:SetBackgroundColor(0.9, 0.9, 0.9, Notorious.UI.alpha)
+	vert:SetPoint("TOPLEFT", fact, "TOPRIGHT", 0, 0)
+	vert:SetPoint("BOTTOMLEFT", fact, "BOTTOMRIGHT", 0, -2)
+	
 	UpdateFaction(id)
 
-	function b:SetFraction(frac)
-		b:SetWidth(frac * Notorious.UI.width)
-		p:SetText(math.floor(frac*100).."%")
+	function cont:SetFraction(frac)
+		print(cont:GetWidth())
+		back:SetWidth(frac * cont:GetWidth())
+		perc:SetText(math.floor(frac*100).."%")
 	end
 	
-	function b:SetText(txt)
-		f:SetText(txt)
+	function cont:SetText(txt)
+		fact:SetText(txt)
+	end
+	
+	function cont:GetMinWidth()
+		return fact:GetWidth() + perc:GetWidth() + 3
 	end
 
-	return b
-end
-
-local function ResizeList()
-	local w = Notorious.UI.wrap
-	local m = Notorious.UI.main
-	local l = Notorious.UI.list
-	local f = Notorious.State.factions
-	table.sort(f, function (a, b)
-			return a.remaining < b.remaining
-		end)
-	local idx = 0
-	for i,fac in pairs(f) do
-		local fra = fac.frame
-		fra:SetPoint("TOPLEFT", l, "TOPLEFT", 0, idx * Notorious.UI.facHeight)
-		idx = idx + 1
-	end
-	local fh = #Notorious.State.factions * Notorious.UI.facHeight
-	w:SetHeight(fh + Notorious.UI.facHeight + 3)
-	m:SetHeight(fh + Notorious.UI.facHeight + 1)
-	l:SetHeight(fh)
+	return cont
 end
 
 Command.Event.Attach(
@@ -248,8 +273,8 @@ Command.Event.Attach(
 				else
 					UpdateFaction(id)
 				end
-				ResizeList()
 			end
 		end
+		ResizeList()
 	end,
 	"Notoriety")
